@@ -1,0 +1,114 @@
+/* --- Elite Engineering: Priority & Insights Layers (Light Theme) --- */
+
+.priority-selector {
+    display: flex;
+    gap: 15px;
+    background: #f1f3f4;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-glass);
+    margin: 8px 0;
+}
+
+.p-radio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.2s;
+}
+
+.p-radio:hover {
+    color: var(--text-main);
+}
+
+.p-radio input {
+    width: auto !important;
+    margin: 0;
+    accent-color: var(--sifu-blue);
+}
+
+/* Priority Card Borders */
+.feed-item.priority-high {
+    border-left: 4px solid var(--accent-red) !important;
+    background: linear-gradient(to right, rgba(234, 67, 53, 0.05), transparent) !important;
+}
+
+.feed-item.priority-mid {
+    border-left: 4px solid var(--sifu-amber) !important;
+}
+
+.feed-item.priority-low {
+    border-left: 4px solid var(--accent-green) !important;
+}
+
+/* Insights Panel Styles */
+.insights-container {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.insight-card {
+    background: #ffffff;
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    transition: all 0.3s;
+    box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .3);
+}
+
+.insight-card:hover {
+    background: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.insight-icon {
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    background: rgba(26, 115, 232, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sifu-blue);
+}
+
+.insight-info {
+    flex: 1;
+}
+
+.insight-title {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--sifu-blue);
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.insight-text {
+    font-size: 12px;
+    color: var(--text-main);
+}
+
+/* Scrollbar Refinement */
+.scroll-area::-webkit-scrollbar {
+    width: 4px;
+}
+
+.empty-state {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 24px;
+}
