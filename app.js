@@ -1350,14 +1350,16 @@ function renderMasterSummary() {
 
     // --- STATS BAR ---
     if (statsContainer) {
-        // Recalculate basic stats on filtered view
-        const keyEstado = Object.keys(state.masterData[0]).find(k => k.toUpperCase() === 'ESTADO') || 'ESTADO';
-
-        const disc = filtered.filter(r => (r[keyEstado] || '').toString().toUpperCase().includes('DESCUBIERTO')).length;
-        const total = filtered.length;
+        const disc = filtered.filter(r => {
+            const eUpper = (r[kEstado] || r[keys.find(k => k.toUpperCase().includes('ESTADO'))] || '').toString().toUpperCase();
+            const tUpper = (r[kTitular] || '').toString().toUpperCase();
+            const isSpecial = eUpper.includes('BRIGADA') || tUpper.includes('RUTA CRISTALES') || eUpper.includes('OBRAS') || eUpper.includes('CERRADO');
+            const isDesc = eUpper.includes('DESCUBIERTO') || (eUpper === '' && tUpper === '') || (tUpper === 'SIN TITULAR');
+            return isDesc && !isSpecial;
+        }).length;
 
         statsContainer.innerHTML = `
-            <div class="master-stat-badge"><span>VISIBLE:</span> ${total}</div>
+            <div class="master-stat-badge"><span>VISIBLE:</span> ${filtered.length}</div>
             <div class="master-stat-badge red"><span>DESCUBIERTOS:</span> ${disc}</div>
         `;
     }
@@ -1409,7 +1411,11 @@ function renderMasterSummary() {
         const e = row[kEstado] || '';
         const sup = row[kSuplente] || '';
 
-        const isDisc = (e.toString().toUpperCase().includes('DESCUBIERTO'));
+        const eUpper = e.toString().toUpperCase();
+        const tUpper = t.toString().toUpperCase();
+        const isSpecialRow = eUpper.includes('BRIGADA') || tUpper.includes('RUTA CRISTALES') || eUpper.includes('OBRAS') || eUpper.includes('CERRADO');
+        const isDisc = (eUpper.includes('DESCUBIERTO') || (eUpper === '' && tUpper === '') || (tUpper === 'SIN TITULAR')) && !isSpecialRow;
+
         const rowClass = isDisc ? 'critical-row' : '';
         const badgeClass = isDisc ? 'red' : 'green';
 
@@ -1723,7 +1729,8 @@ function startTicker() {
 
 function updateTicker(msg) {
     if (tickerEl) {
-        tickerEl.textContent = msg;
+        console.log("CEREBRO Ticker:", msg);
+        tickerEl.innerHTML = `<span style="color:var(--sifu-blue); font-weight:bold;">[V-OK-10]</span> ${msg}`;
         tickerEl.style.color = 'var(--sifu-amber)';
         setTimeout(() => tickerEl.style.color = '', 3000);
     }
