@@ -871,13 +871,15 @@ function processMasterArray(rawData) {
     if (!rawData.length) return;
     const keys = Object.keys(rawData[0]);
 
-    // Función auxiliar para encontrar la mejor clave coincidente
+    // Función auxiliar para encontrar la mejor clave coincidente (insensible a espacios)
     const findKey = (search) => keys.find(k => k.toUpperCase().trim() === search || k.toUpperCase().includes(search));
 
     const keyServicio = findKey('SERVICIO') || 'SERVICIO';
     const keyTitular = findKey('TITULAR') || 'TITULAR';
-    const keyEstado = keys.find(k => k.toUpperCase() === 'ESTADO') || 'ESTADO';
-    const keyEstadoSalud = keys.find(k => k.toUpperCase().includes('ESTADO') && k !== keyEstado) || keys.find(k => k.toUpperCase().includes('BAJA')) || 'ESTADO.1';
+    const keyEstado = keys.find(k => k.toUpperCase().trim() === 'ESTADO') ||
+        keys.find(k => k.toUpperCase().includes('ESTADO') && !k.toUpperCase().includes('SALUD')) ||
+        'ESTADO';
+    const keyEstadoSalud = keys.find(k => k.toUpperCase().includes('ESTADO') && k !== keyEstado) || keys.find(k => k.toUpperCase().includes('BAJA')) || keys.find(k => k.toUpperCase().includes('IT')) || 'ESTADO.1';
     const keySuplente = findKey('SUPLENTE') || 'SUPLENTE';
     const keyHorario = findKey('HORARIO') || 'HORARIO';
 
@@ -1350,8 +1352,16 @@ function renderMasterSummary() {
 
     // --- STATS BAR ---
     if (statsContainer) {
+        const keys = Object.keys(state.masterData[0]);
+        const kEstado = keys.find(k => k.toUpperCase().trim() === 'ESTADO') ||
+            keys.find(k => k.toUpperCase().includes('ESTADO') && !k.toUpperCase().includes('SALUD') && !k.toUpperCase().includes('IT')) ||
+            'ESTADO';
+        const kTitular = keys.find(k => k.toUpperCase().trim() === 'TITULAR') ||
+            keys.find(k => k.toUpperCase().includes('TITULAR')) ||
+            'TITULAR';
+
         const disc = filtered.filter(r => {
-            const eUpper = (r[kEstado] || r[keys.find(k => k.toUpperCase().includes('ESTADO'))] || '').toString().toUpperCase();
+            const eUpper = (r[kEstado] || '').toString().toUpperCase();
             const tUpper = (r[kTitular] || '').toString().toUpperCase();
             const isSpecial = eUpper.includes('BRIGADA') || tUpper.includes('RUTA CRISTALES') || eUpper.includes('OBRAS') || eUpper.includes('CERRADO');
             const isDesc = eUpper.includes('DESCUBIERTO') || (eUpper === '' && tUpper === '') || (tUpper === 'SIN TITULAR');
