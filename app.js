@@ -1808,8 +1808,13 @@ function updateOperationalChart() {
 
     const total = state.masterData.length;
     const keys = Object.keys(state.masterData[0]);
-    const kEstado = keys.find(k => k.toUpperCase() === 'ESTADO') || 'ESTADO';
-    const kTitular = keys.find(k => k.toUpperCase().includes('TITULAR')) || 'TITULAR';
+    // Detección ultra-robusta: coincidencia exacta trimmed o contiene pero no es salud/it
+    const kEstado = keys.find(k => k.toUpperCase().trim() === 'ESTADO') ||
+        keys.find(k => k.toUpperCase().includes('ESTADO') && !k.toUpperCase().includes('SALUD') && !k.toUpperCase().includes('IT')) ||
+        'ESTADO';
+    const kTitular = keys.find(k => k.toUpperCase().trim() === 'TITULAR') ||
+        keys.find(k => k.toUpperCase().includes('TITULAR')) ||
+        'TITULAR';
 
     const uncovered = state.masterData.filter(r => {
         const eUpper = (r[kEstado] || '').toString().toUpperCase();
@@ -1869,8 +1874,17 @@ function updateInsights() {
 
     // --- PROFESSIONAL DATA SCANNING ---
     const keys = Object.keys(state.masterData[0]);
-    const kEstado = keys.find(k => k.toUpperCase().includes('ESTADO')) || 'ESTADO';
-    const kSalud = keys.find(k => k.toUpperCase().includes('SALUD')) || keys.find(k => k.toUpperCase().includes('IT')) || '';
+    // Priorizar coincidencia exacta trimmed
+    const kEstado = keys.find(k => k.toUpperCase().trim() === 'ESTADO') ||
+        keys.find(k => k.toUpperCase().includes('ESTADO') && !k.toUpperCase().includes('SALUD') && !k.toUpperCase().includes('IT')) ||
+        'ESTADO';
+    const kTitular = keys.find(k => k.toUpperCase().trim() === 'TITULAR') ||
+        keys.find(k => k.toUpperCase().includes('TITULAR')) ||
+        'TITULAR';
+    const kSalud = keys.find(k => k.toUpperCase().includes('SALUD')) ||
+        keys.find(k => k.toUpperCase().includes('IT')) ||
+        keys.find(k => k.toUpperCase().includes('ESTADO.')) ||
+        '';
 
     // Count Uncovered (Consolidated logic)
     const uncoveredCount = state.masterData.filter(row => {
