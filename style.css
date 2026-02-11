@@ -270,11 +270,23 @@ body {
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 350px 1fr;
-    /* Slightly narrower sidebar */
+    grid-template-columns: 1fr;
     gap: 20px;
     width: 100%;
     max-width: 100%;
+}
+
+/* Responsive adjustments for large screens */
+@media (min-width: 1400px) {
+    .content-viewport {
+        padding: 30px 50px;
+    }
+
+    .master-table th,
+    .master-table td {
+        font-size: 0.95rem;
+        /* Slightly larger text on big screens */
+    }
 }
 
 /* Unified Communicator Widget */
@@ -2141,7 +2153,7 @@ body {
     display: block;
 }
 
-/* Elegant White Notepad Section */
+/* --- PREMIUM NOTEBOOK SECTION & SCROLL --- */
 .top-notepad-section {
     background: #ffffff;
     border: 1px solid #dadce0;
@@ -2151,76 +2163,160 @@ body {
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
     position: relative;
     overflow: hidden;
-}
-
-.top-notepad-section::before {
-    content: "NOTAS TÁCTICAS";
-    position: absolute;
-    top: -5px;
-    right: -10px;
-    font-size: 70px;
-    font-weight: 900;
-    color: rgba(0, 0, 0, 0.02);
-    pointer-events: none;
-    transform: rotate(-8deg);
-}
-
-.notepad-header {
+    /* FIX: Ensure container doesn't overflow parent */
+    max-width: 100%;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    position: relative;
-    z-index: 2;
-}
-
-.section-tag {
-    font-size: 13px;
-    font-weight: 900;
-    color: #444;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Outfit', sans-serif;
-    letter-spacing: 1px;
-}
-
-/* Premium Light Input Box */
-.quick-note-box {
-    flex: 0 0 350px;
-    position: relative;
-}
-
-#quick-note-top {
-    width: 100%;
-    padding: 12px 20px;
-    background: #fff;
-    border: 2px solid #e3d18a;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #000000;
-    outline: none;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 4px 15px rgba(227, 209, 138, 0.2);
-}
-
-#quick-note-top:focus {
-    border-color: #ffeb3b;
-    box-shadow: 0 0 0 4px rgba(255, 235, 59, 0.1), 0 8px 20px rgba(227, 209, 138, 0.3);
-    transform: translateY(-2px);
+    flex-direction: column;
 }
 
 .top-notes-horizontal {
     display: flex;
-    gap: 25px;
+    gap: 20px;
     overflow-x: auto;
-    padding: 15px 5px 25px 5px;
-    scrollbar-width: none;
+    padding: 20px 10px 30px 10px;
+    /* More bottom padding for shadows */
+    /* FIX: Custom Scrollbar for elegant scrolling */
+    scrollbar-width: thin;
+    scrollbar-color: #e3d18a #f1f3f4;
+    scroll-behavior: smooth;
+    max-width: 100%;
+    /* Snap effect for better mobile experience */
+    scroll-snap-type: x mandatory;
 }
 
 .top-notes-horizontal::-webkit-scrollbar {
-    display: none;
+    height: 8px;
+}
+
+.top-notes-horizontal::-webkit-scrollbar-track {
+    background: #f1f3f4;
+    border-radius: 4px;
+}
+
+.top-notes-horizontal::-webkit-scrollbar-thumb {
+    background-color: #e3d18a;
+    border-radius: 4px;
+    border: 2px solid #f1f3f4;
+}
+
+/* --- PREMIUM STICKY NOTES (CARDS) --- */
+.note-card-horizontal {
+    flex: 0 0 240px;
+    /* Subtle gradients for paper texture feel */
+    background: linear-gradient(135deg, #fff7d1 0%, #fff2b0 100%);
+    border: none;
+    /* Removed border for cleaner look, relying on shadow */
+    border-radius: 2px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1), 0 10px 20px rgba(0, 0, 0, 0.05);
+    /* Deep shadow */
+    display: flex;
+    flex-direction: column;
+    height: 200px;
+    overflow: hidden;
+    scroll-snap-align: start;
+    transform-origin: top center;
+}
+
+/* Organic Rotations & Variations */
+.note-card-horizontal:nth-child(odd) {
+    transform: rotate(-1.5deg);
+    background: linear-gradient(135deg, #ffffd6 0%, #fff7d1 100%);
+}
+
+.note-card-horizontal:nth-child(even) {
+    transform: rotate(2deg) translateY(2px);
+    background: linear-gradient(135deg, #fff7d1 0%, #ffe994 100%);
+}
+
+.note-card-horizontal:nth-child(3n) {
+    transform: rotate(-0.5deg);
+}
+
+/* Hover Effect: Lift up and straighten */
+.note-card-horizontal:hover {
+    transform: translateY(-8px) scale(1.02) rotate(0deg) !important;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15), 0 5px 10px rgba(0, 0, 0, 0.05);
+    z-index: 20;
+    background: #ffffea;
+    /* Highlight */
+}
+
+/* PIN ELEMENT (The "Celo" or "Pin") */
+.note-card-horizontal::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transform: translateX(-50%) rotate(2deg);
+    z-index: 2;
+    backdrop-filter: blur(2px);
+    border-radius: 1px;
+}
+
+/* Tape variation for odds */
+.note-card-horizontal:nth-child(odd)::before {
+    transform: translateX(-50%) rotate(-3deg);
+    width: 35px;
+}
+
+/* Header inside the sticky note card */
+.note-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: #8b7d3b;
+    margin-bottom: 12px;
+    border-bottom: 2px dashed rgba(139, 125, 59, 0.15);
+    /* Dashed line for notebook feel */
+    padding-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Body of the note */
+.note-card-body {
+    font-family: 'Indie Flower', 'Comic Sans MS', 'Patrick Hand', 'Segoe UI', sans-serif;
+    /* Handwriting if available, else standard */
+    font-size: 14px;
+    color: #2c2508;
+    line-height: 1.5;
+    flex: 1;
+    overflow-y: auto;
+    word-break: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: #d6ca90 transparent;
+    padding-right: 4px;
+}
+
+.note-card-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.note-card-body::-webkit-scrollbar-thumb {
+    background: #d6ca90;
+    border-radius: 2px;
+}
+
+.note-card-footer {
+    margin-top: 10px;
+    font-size: 9px;
+    color: rgba(139, 125, 59, 0.6);
+    font-weight: 800;
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* Classic Yellow Sticky Notes with Pin */
@@ -2631,15 +2727,37 @@ body {
 
 /* SIFU LIVE SYNC IMPROVEMENTS */
 @keyframes pulse-amber-border {
-    0% { border-color: var(--sifu-amber); box-shadow: 0 0 0 0 rgba(249, 171, 0, 0.4); }
-    70% { border-color: #ffc107; box-shadow: 0 0 0 10px rgba(249, 171, 0, 0); }
-    100% { border-color: var(--sifu-amber); box-shadow: 0 0 0 0 rgba(249, 171, 0, 0); }
+    0% {
+        border-color: var(--sifu-amber);
+        box-shadow: 0 0 0 0 rgba(249, 171, 0, 0.4);
+    }
+
+    70% {
+        border-color: #ffc107;
+        box-shadow: 0 0 0 10px rgba(249, 171, 0, 0);
+    }
+
+    100% {
+        border-color: var(--sifu-amber);
+        box-shadow: 0 0 0 0 rgba(249, 171, 0, 0);
+    }
 }
 
 @keyframes pulse-green {
-    0% { opacity: 0.6; transform: scale(0.95); }
-    50% { opacity: 1; transform: scale(1.05); }
-    100% { opacity: 0.6; transform: scale(0.95); }
+    0% {
+        opacity: 0.6;
+        transform: scale(0.95);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    100% {
+        opacity: 0.6;
+        transform: scale(0.95);
+    }
 }
 
 .btn-comm.master.pulse-sync {
@@ -2652,7 +2770,636 @@ body {
 }
 
 @keyframes logo-sync-flash {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 var(--sifu-blue); }
-    50% { transform: scale(1.2); box-shadow: 0 0 20px 10px var(--sifu-blue-glow); background: var(--accent-green); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 var(--sifu-blue); }
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 var(--sifu-blue);
+    }
+
+    50% {
+        transform: scale(1.2);
+        box-shadow: 0 0 20px 10px var(--sifu-blue-glow);
+        background: var(--accent-green);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 var(--sifu-blue);
+    }
 }
+
+/* --- HYBRID STICKY NOTES (CARDS) --- */
+.note-card-horizontal {
+    flex: 0 0 240px;
+    background: #fff7d1;
+    /* Classic Sticky Note Yellow */
+    border: 1px solid #e3d18a;
+    border-radius: 2px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    height: 180px;
+    /* Fixed height for uniformity */
+    overflow: hidden;
+}
+
+.note-card-horizontal:hover {
+    transform: translateY(-4px) rotate(0deg) !important;
+    box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    background: #fff9e6;
+    /* Lighter yellow on hover */
+}
+
+/* Header inside the sticky note card */
+.note-card-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 700;
+    color: #8b7d3b;
+    margin-bottom: 8px;
+    border-bottom: 2px solid rgba(139, 125, 59, 0.1);
+    padding-bottom: 4px;
+    text-transform: uppercase;
+}
+
+/* Body of the note */
+.note-card-body {
+    font-family: 'Segoe UI', 'Consolas', sans-serif;
+    /* Windows look */
+    font-size: 13px;
+    color: #333;
+    line-height: 1.4;
+    flex: 1;
+    overflow-y: auto;
+    word-break: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: #e3d18a transparent;
+}
+
+.note-card-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.note-card-body::-webkit-scrollbar-thumb {
+    background: #e3d18a;
+}
+
+.note-card-footer {
+    margin-top: 8px;
+    font-size: 9px;
+    color: rgba(139, 125, 59, 0.6);
+    font-weight: 600;
+    text-align: right;
+}
+
+/* Remove rotation for cleaner look, or keep slight rotation? User wanted "mix". 
+   Let's keep a very subtle rotation for the "sticky" feel but less chaotic. */
+.note-card-horizontal:nth-child(even) {
+    transform: rotate(1deg);
+}
+
+.note-card-horizontal:nth-child(odd) {
+    transform: rotate(-1deg);
+}
+
+/* Clip removed as regular sticky notes usually don't have clips, but if user wants "mix", let's keep a very subtle rotation */
+
+
+/* --- AI MANAGER STYLES --- */
+.btn-ai-glow {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: pulse-ai 3s infinite;
+}
+
+.btn-ai-glow:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+}
+
+@keyframes pulse-ai {
+    0% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    }
+}
+
+/* --- AI ASSISTANT 2.0 (GLASSMORPHISM / HIGH-TECH) --- */
+.ai-modal-content {
+    background: rgba(15, 23, 42, 0.85);
+    /* Deep Blue/Slate transluscent */
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 0 40px rgba(0, 0, 0, 0.5),
+        0 0 100px rgba(56, 189, 248, 0.1);
+    /* Subtle blue glow */
+    border-radius: 16px;
+    font-family: 'Inter', 'Roboto', sans-serif;
+    /* Clean modern font */
+    color: #f8fafc;
+    width: 90%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: ai-modal-entry 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 0;
+}
+
+@keyframes ai-modal-entry {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.ai-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ai-avatar {
+    font-size: 28px;
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.4));
+    animation: ai-pulse 2s infinite ease-in-out;
+    border: none;
+    width: auto;
+    height: auto;
+    margin: 0;
+}
+
+@keyframes ai-pulse {
+
+    0%,
+    100% {
+        opacity: 0.8;
+        transform: scale(1);
+        filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.4));
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 15px rgba(56, 189, 248, 0.8));
+    }
+}
+
+.ai-title {
+    flex: 1;
+}
+
+.ai-title h3 {
+    margin: 0;
+    font-size: 18px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.ai-title span {
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    color: #94a3b8;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.ai-body {
+    padding: 24px;
+    background: transparent;
+    flex: 1;
+    overflow-y: auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* AI Messages */
+.ai-msg {
+    animation: fade-in-up 0.4s ease forwards;
+    padding: 12px 16px;
+    border-radius: 0 12px 12px 12px;
+    position: relative;
+    max-width: 95%;
+    margin-bottom: 0;
+    border-left: none;
+    /* Reset old styles */
+}
+
+.ai-msg.normal {
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 3px solid #38bdf8;
+    /* Blue accent */
+    color: #e2e8f0;
+}
+
+.ai-msg.urgent {
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #ef4444;
+    /* Red accent */
+    color: #fca5a5;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+}
+
+.ai-msg.success {
+    background: rgba(34, 197, 94, 0.1);
+    border-left: 3px solid #22c55e;
+    /* Green accent */
+    color: #86efac;
+}
+
+.ai-typing span {
+    width: 6px;
+    height: 6px;
+    background: #38bdf8;
+    border-radius: 50%;
+    display: inline-block;
+    animation: typing-bounce 1.4s infinite ease-in-out both;
+    margin: 0 2px;
+    box-shadow: 0 0 8px #38bdf8;
+}
+
+@keyframes typing-bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+
+    40% {
+        transform: scale(1);
+    }
+}
+
+/* Footer Actions */
+.ai-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.btn-ai-action {
+    background: linear-gradient(135deg, #38bdf8, #2563eb);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Inter', sans-serif;
+}
+
+.btn-ai-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-ai-action.secondary {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+    color: #94a3b8;
+}
+
+.btn-ai-action.secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border-color: #fff;
+}
+
+/* Remove Author Input styling if present, or style minimally */
+#ai-author-input {
+    display: none;
+    /* User rejected it */
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- STATUS DETAIL MODAL STYLES --- */
+.status-modal-content {
+    /* Specific class for wider modal */
+    background: #ffffff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    position: relative;
+    padding: 0;
+}
+
+/* Ensure body scrolls */
+#status-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.status-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #eee;
+    background: #f8fafc;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.btn-modal-action {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.btn-modal-action.back {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.btn-modal-action.back:hover {
+    background: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+.btn-modal-action.pdf {
+    background: #ef4444;
+    /* Red for PDF */
+    color: white;
+}
+
+.btn-modal-action.pdf:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+}
+
+.btn-modal-action.excel {
+    background: #10b981;
+    /* Green for Excel */
+    color: white;
+}
+
+.btn-modal-action.excel:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+/* --- NOTEBOOK MODULE (VINTAGE BLACKBOARD THEME) --- */
+#module-notes {
+    /* Vintage Green Blackboard with Vignette */
+    background:
+        radial-gradient(circle at center, #3e5f42 0%, #1a2b1e 90%) !important;
+    border: 12px solid #5D4037 !important;
+    /* Thicker Wood Frame */
+    border-image: linear-gradient(to bottom right, #8D6E63, #3E2723, #4E342E) 1 !important;
+    /* Faux Wood Grain Gradient */
+    border-radius: 2px !important;
+    box-shadow:
+        inset 0 0 50px rgba(0, 0, 0, 0.7),
+        /* Deep inner shadow for depth */
+        0 15px 30px rgba(0, 0, 0, 0.3) !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Dust Texture Overlay */
+#module-notes::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48ZmlsdGVyIGlkPSJnoiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIwLjUiIHN0aXRjaFRpbGVzPSJzdGl0Y2giLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjZykiIG9wYWNpdHk9IjAuMDUiLz48L3N2Zz4=');
+    pointer-events: none;
+    opacity: 0.4;
+    z-index: 0;
+}
+
+#module-notes h3 {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-family: 'Segoe Print', 'Chalkboard SE', 'Comic Sans MS', sans-serif !important;
+    /* Handwriting Chalk Font */
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+    padding: 12px !important;
+    margin-bottom: 0 !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;
+    background: rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+}
+
+#module-notes .module-header-actions {
+    background: rgba(0, 0, 0, 0.2) !important;
+    padding: 0 12px;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notebook-input-area {
+    background: rgba(255, 255, 255, 0.05) !important;
+    padding: 15px !important;
+    border-top: 4px solid rgba(93, 64, 55, 0.8) !important;
+    /* Tray Lip */
+    border-bottom: none !important;
+    margin-top: auto;
+    /* Push to bottom if flex allows, but here it's static */
+    position: relative;
+    z-index: 2;
+    /* Above dust */
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+#note-input {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2px dashed rgba(255, 255, 255, 0.4) !important;
+    /* Dotted line like practice sheets */
+    color: #fff !important;
+    font-family: 'Segoe Print', 'Chalkboard SE', 'Comic Sans MS', sans-serif !important;
+    /* Chalk Font */
+    font-size: 16px !important;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+    padding: 5px 0;
+}
+
+#note-input::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+    font-style: italic !important;
+}
+
+#note-input:focus {
+    outline: none !important;
+    border-bottom-style: solid !important;
+    border-bottom-color: #fff !important;
+}
+
+/* The Feed - Blackboard Surface */
+#notes-feed {
+    background: transparent !important;
+    /* Use parent vintage gradient */
+    padding: 20px !important;
+    z-index: 1;
+}
+
+/* Notes Pop on the Board */
+#notes-feed .note-card-horizontal {
+    box-shadow: 4px 6px 12px rgba(0, 0, 0, 0.5) !important;
+    border: none !important;
+    transform: rotate(-1deg);
+    /* Slight organic tilt */
+}
+
+#notes-feed .note-card-horizontal:nth-child(even) {
+    transform: rotate(1deg);
+}
+
+#notes-feed .note-card-horizontal:hover {
+    transform: scale(1.02) rotate(0deg) !important;
+    z-index: 10;
+}
+
+/* Clear button specific for blackboard */
+#module-notes .btn-clear-all {
+    background: transparent !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.3) !important;
+    font-family: 'Segoe Print', sans-serif !important;
+    font-size: 11px !important;
+}
+
+#module-notes .btn-clear-all:hover {
+    background: rgba(211, 47, 47, 0.2) !important;
+    border-color: #ef5350 !important;
+    color: #fff !important;
+}
+
+#notes-feed::-webkit-scrollbar {
+    width: 8px !important;
+}
+
+#notes-feed::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+#notes-feed::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 4px !important;
+}
+
+/* --- QUICK INPUT "CHALK" STYLE --- */
+.quick-input {
+    background: transparent !important;
+    border: none !important;
+    position: relative;
+    padding: 0 10px;
+}
+
+#quick-input-bar {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.5) !important;
+    color: #fff !important;
+    font-family: 'Segoe Print', 'Chalkboard SE', sans-serif !important;
+    font-size: 16px !important;
+    padding: 8px 10px !important;
+    width: 100%;
+    margin-right: 10px;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+}
+
+#quick-input-bar::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+    font-style: italic;
+    font-family: 'Segoe UI', sans-serif;
+    /* Cleaner for placeholder */
+}
+
+#quick-input-bar:focus {
+    outline: none !important;
+    border-bottom: 2px solid #fff !important;
+    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
+}
+
+/* EOF */

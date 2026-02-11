@@ -73,7 +73,7 @@
                     </div>
 
                     <div class="h-stat-item">
-                        <div class="h-stat-label">SIS PREDICT (IA)</div>
+                        <div class="h-stat-label">SIS PREDICT</div>
                         <div class="h-stat-value" id="sis-predict-val">0.0%</div>
                     </div>
 
@@ -81,6 +81,10 @@
                         <div class="h-stat-label">SATISFACCIÓN</div>
                         <div class="h-stat-value" style="color:var(--accent-green);">9.8/10</div>
                     </div>
+
+                    <button id="btn-ai-manager" class="btn-ai-glow" onclick="openAIModal()">
+                        <span class="ai-sparkle">✨</span> ASISTENTE OPERATIVO
+                    </button>
                 </div>
             </div>
         </header>
@@ -116,8 +120,11 @@
                             </div>
                         </section>
 
+
+
                         <section class="holographic-bridge">
-                            <div class="holographic-card" id="metric-uncovered">
+                            <div class="holographic-card dangerous-click" id="metric-uncovered"
+                                onclick="showUncoveredDetails()">
                                 <div class="hologram-effect"></div>
                                 <div class="metric-orbit">
                                     <div class="orbit-ring"></div>
@@ -128,7 +135,8 @@
                                     <div class="metric-value" id="val-uncovered">0</div>
                                 </div>
                             </div>
-                            <div class="holographic-card" id="metric-absences">
+                            <div class="holographic-card info-click" id="metric-absences"
+                                onclick="showAbsenceDetails()">
                                 <div class="hologram-effect"></div>
                                 <div class="metric-orbit">
                                     <div class="orbit-ring"></div>
@@ -139,7 +147,8 @@
                                     <div class="metric-value" id="val-absences">0</div>
                                 </div>
                             </div>
-                            <div class="holographic-card" id="metric-incidents">
+                            <div class="holographic-card warning-click" id="metric-incidents"
+                                onclick="showIncidentDetails()">
                                 <div class="hologram-effect"></div>
                                 <div class="metric-orbit">
                                     <div class="orbit-ring"></div>
@@ -373,6 +382,59 @@
     <script src="indexeddb-persist.js"></script>
     <script src="master_data.js"></script>
     <script src="app.js"></script>
+    <!-- AI Manager Modal (Renamed) -->
+    <div id="ai-modal" class="modal">
+        <div class="modal-content ai-modal-content">
+            <div class="ai-header">
+                <div class="ai-avatar">⚛️</div>
+                <div class="ai-title">
+                    <h3>SIS PREDICT</h3>
+                    <span>CORE INTELLIGENCE MODULE</span>
+                </div>
+                <button class="close-modal" onclick="closeAIModal()">&times;</button>
+            </div>
+            <div class="ai-body">
+                <div id="ai-typing-indicator" class="ai-typing">
+                    <span></span><span></span><span></span>
+                </div>
+                <div id="ai-insights-container" class="ai-insights">
+                    <!-- Insights will be injected here -->
+                </div>
+            </div>
+            <div class="ai-footer">
+                <button class="btn-ai-action" onclick="generateAIInsights()">🔄 RE-ANALIZAR</button>
+                <button class="btn-ai-action secondary" onclick="closeAIModal()">ENTENDIDO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Status Details Modal -->
+    <div id="status-detail-modal" class="modal">
+        <div class="status-modal-content">
+            <div class="modal-header">
+                <h2 id="status-modal-title">DETALLE</h2>
+                <button class="close-modal" onclick="closeStatusModal()">×</button>
+            </div>
+            <div id="status-modal-body">
+                <!-- Dynamic Content -->
+            </div>
+            <div class="status-modal-footer">
+                <button class="btn-modal-action excel" onclick="exportStatusToExcel()">
+                    <span>📊</span> EXCEL
+                </button>
+                <button class="btn-modal-action pdf" onclick="exportStatusToPDF()">
+                    <span>📄</span> PDF
+                </button>
+                <button class="btn-modal-action back" onclick="closeStatusModal()">
+                    VOLVER
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Export Lib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 </body>
 
 </html>

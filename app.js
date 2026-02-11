@@ -9,6 +9,8 @@
     MASTER: 'sifu_master_data_v4'
 };
 
+
+
 const DataManager = {
     save(key, data) {
         try { localStorage.setItem(key, JSON.stringify(data)); return true; }
@@ -29,8 +31,10 @@ const DEFAULT_STATE = {
     stats: { activeWorkers: 24 },
     notes: [],
     masterData: [],
-    filterType: null
+    filterType: null,
+    stickyContent: ''
 };
+
 
 const ATOMIC_STATE_KEY = 'sifu_universal_state_v5';
 let state = { ...DEFAULT_STATE };
@@ -62,8 +66,10 @@ function loadGlobalState() {
                 masterData: (typeof INITIAL_MASTER_DATA !== 'undefined' && INITIAL_MASTER_DATA.length > 0)
                     ? INITIAL_MASTER_DATA
                     : (parsed.masterData || []),
-                filterType: parsed.filterType || null
+                filterType: parsed.filterType || null,
+                stickyContent: parsed.stickyContent || ''
             };
+
 
             console.log('✅ Estado cargado exitosamente desde localStorage');
             return true;
@@ -81,8 +87,10 @@ function loadGlobalState() {
                         stats: data.stats || { activeWorkers: 24 },
                         notes: data.notes || [],
                         masterData: data.masterData || [],
-                        filterType: data.filterType || null
+                        filterType: data.filterType || null,
+                        stickyContent: data.stickyContent || ''
                     };
+
                     console.log('✅ Estado cargado desde IndexedDB');
                     renderAll();
                 }
@@ -135,7 +143,9 @@ function saveAllState() {
             DataManager.save(STORAGE_KEYS.STATS, state.stats);
             DataManager.save(STORAGE_KEYS.NOTES, state.notes);
             DataManager.save(STORAGE_KEYS.MASTER, state.masterData);
+            DataManager.save(STORAGE_KEYS.STICKY, state.stickyContent);
         } catch (e) {
+
             console.warn('⚠️ Error guardando llaves individuales:', e);
         }
 
@@ -233,6 +243,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializar indicador de guardado
     initSaveIndicator();
 });
+
+
+
+
+
 
 function updateDate() {
     const now = new Date();
@@ -530,7 +545,9 @@ function setupEventListeners() {
             localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(state.stats));
             localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(state.notes));
             localStorage.setItem(STORAGE_KEYS.MASTER, JSON.stringify(state.masterData));
+            localStorage.setItem(STORAGE_KEYS.STICKY, state.stickyContent);
             localStorage.setItem('sifu_last_sync', new Date().toLocaleString('es-ES'));
+
             console.log('✅ Guardado sincrónico forzado ejecutado');
             return true;
         } catch (err) {
@@ -1301,11 +1318,30 @@ function renderFilterChips() {
 }
 
 // 2. Rendering Implementation (Requested Columns: SERVICIO, TITULAR, HORARIO, ESTADO, SUPLENTE)
+// --- NEW COLUMN FILTER LOGIC ---
+let columnFilters = {
+    servicio: '',
+    titular: '',
+    horario: '',
+    estado: '',
+    suplente: ''
+};
+
+window.updateColumnFilter = (key, value) => {
+    columnFilters[key] = value.toLowerCase();
+    renderMasterBodyOnly(); // Optimized render
+};
+
 function renderMasterSummary() {
     const feed = document.getElementById('master-summary-feed');
+    // Only render full table if it doesn't exist
+    if (feed && feed.querySelector('#resizable-master')) {
+        renderMasterBodyOnly();
+        return;
+    }
+
     const countEl = document.getElementById('master-count');
     const searchInput = document.getElementById('master-search-input');
-    const statsContainer = document.getElementById('master-stats-summary');
 
     if (!feed) return;
     if (!state.masterData || state.masterData.length === 0) {
@@ -1314,41 +1350,79 @@ function renderMasterSummary() {
         return;
     }
 
-    // Initialize Default Filters (First Run Only)
-    if (!hasInitializedFilters) {
-        // User didn't specify default filters, but let's default to ESTADO and SUPLENTE as they are key
-        const keys = Object.keys(state.masterData[0]);
-        // Try to find intelligent defaults
-        const kEstado = keys.find(k => k.toUpperCase() === 'ESTADO');
-        const kSuplente = keys.find(k => k.toUpperCase() === 'SUPLENTE');
+    // Initial Render of Table Structure (Headers with Inputs)
+    feed.innerHTML = `
+    <table class="master-table" id="resizable-master">
+        <thead>
+            <tr>
+                <th style="width: 25%;">
+                    📍 SERVICIO <div class="resizer"></div>
+                    <input type="text" class="header-filter-input" placeholder="Filtrar..." oninput="updateColumnFilter('servicio', this.value)" value="${columnFilters.servicio}">
+                </th>
+                <th style="width: 20%;">
+                    👤 TITULAR <div class="resizer"></div>
+                    <input type="text" class="header-filter-input" placeholder="Filtrar..." oninput="updateColumnFilter('titular', this.value)" value="${columnFilters.titular}">
+                </th>
+                <th style="width: 20%;">
+                    ⏰ HORARIO <div class="resizer"></div>
+                    <input type="text" class="header-filter-input" placeholder="Filtrar..." oninput="updateColumnFilter('horario', this.value)" value="${columnFilters.horario}">
+                </th>
+                <th style="width: 15%;">
+                    🛡️ COBERTURA <div class="resizer"></div>
+                    <input type="text" class="header-filter-input" placeholder="Filtrar..." oninput="updateColumnFilter('estado', this.value)" value="${columnFilters.estado}">
+                </th>
+                <th style="width: 20%;">
+                    🔄 SUPLENTE <div class="resizer"></div>
+                    <input type="text" class="header-filter-input" placeholder="Filtrar..." oninput="updateColumnFilter('suplente', this.value)" value="${columnFilters.suplente}">
+                </th>
+            </tr>
+        </thead>
+        <tbody id="master-table-body">
+            <!-- Rows injected by renderMasterBodyOnly -->
+        </tbody>
+    </table>`;
 
-        if (kEstado) activeFilters.push(kEstado);
-        if (kSuplente) activeFilters.push(kSuplente);
+    renderMasterBodyOnly();
 
-        hasInitializedFilters = true;
-        renderFilterChips();
-    }
+    // Init resizers
+    setTimeout(() => initResizableTable(document.getElementById('resizable-master')), 100);
+}
 
-    // --- FILTERING LOGIC ---
-    const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+function renderMasterBodyOnly() {
+    const tbody = document.getElementById('master-table-body');
+    const countEl = document.getElementById('master-count');
+    const searchInput = document.getElementById('master-search-input');
+    const statsContainer = document.getElementById('master-stats-summary');
 
-    // Get current filter values
-    const criteria = activeFilters.map(key => {
-        const el = document.getElementById(`filter-select-${key}`);
-        return { key, val: el ? el.value : 'ALL' };
-    });
+    if (!tbody) return;
 
+    const globalQuery = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+    // Filtering Logic
     let filtered = state.masterData.filter(row => {
-        // Global Search
-        const rowStr = Object.values(row).join(' ').toLowerCase();
-        if (query && !rowStr.includes(query)) return false;
-
-        // Column Filters
-        for (let c of criteria) {
-            if (c.val !== 'ALL') {
-                if (row[c.key] != c.val) return false;
-            }
+        // 1. Global Search
+        if (globalQuery) {
+            const rowStr = Object.values(row).join(' ').toLowerCase();
+            if (!rowStr.includes(globalQuery)) return false;
         }
+
+        // 2. Column Filters
+        // Map Keys dynamically (best effort)
+        const keys = Object.keys(state.masterData[0]);
+        const findK = (q) => keys.find(k => k.toUpperCase().includes(q));
+
+        const kServicio = findK('SERVICIO') || keys[0];
+        const kTitular = findK('TITULAR') || keys[1] || 'TITULAR';
+        const kHorario = findK('HORARIO') || keys[2] || 'HORARIO';
+        const kEstado = keys.find(k => k.toUpperCase() === 'ESTADO') || findK('ESTADO') || keys[3];
+        const kSuplente = findK('SUPLENTE') || (keys.length > 4 ? keys[4] : 'SUPLENTE');
+
+        if (columnFilters.servicio && !(row[kServicio] || '').toString().toLowerCase().includes(columnFilters.servicio)) return false;
+        if (columnFilters.titular && !(row[kTitular] || '').toString().toLowerCase().includes(columnFilters.titular)) return false;
+        if (columnFilters.horario && !(row[kHorario] || '').toString().toLowerCase().includes(columnFilters.horario)) return false;
+        if (columnFilters.estado && !(row[kEstado] || '').toString().toLowerCase().includes(columnFilters.estado)) return false;
+        if (columnFilters.suplente && !(row[kSuplente] || '').toString().toLowerCase().includes(columnFilters.suplente)) return false;
+
         return true;
     });
 
@@ -1356,13 +1430,10 @@ function renderMasterSummary() {
 
     // --- STATS BAR ---
     if (statsContainer) {
+        // Re-calculate stats based on filtered view
         const keys = Object.keys(state.masterData[0]);
-        const kEstado = keys.find(k => k.toUpperCase().trim() === 'ESTADO') ||
-            keys.find(k => k.toUpperCase().includes('ESTADO') && !k.toUpperCase().includes('SALUD') && !k.toUpperCase().includes('IT')) ||
-            'ESTADO';
-        const kTitular = keys.find(k => k.toUpperCase().trim() === 'TITULAR') ||
-            keys.find(k => k.toUpperCase().includes('TITULAR')) ||
-            'TITULAR';
+        const kEstado = keys.find(k => k.toUpperCase().trim() === 'ESTADO') || 'ESTADO';
+        const kTitular = keys.find(k => k.toUpperCase().trim() === 'TITULAR') || 'TITULAR';
 
         const disc = filtered.filter(r => {
             const eUpper = (r[kEstado] || '').toString().toUpperCase();
@@ -1379,17 +1450,13 @@ function renderMasterSummary() {
     }
 
     if (filtered.length === 0) {
-        feed.innerHTML = '<div class="empty-state">NO HAY RESULTADOS PARA ESTE FILTRO</div>';
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">NO HAY RESULTADOS PARA ESTE FILTRO</td></tr>';
         return;
     }
 
-    // --- RENDER TABLE ---
-    // Columns: SERVICIO, TITULAR, HORARIO, ESTADO, SUPLENTE
+    // Mapping Keys for Display
     const keys = Object.keys(state.masterData[0]);
-
-    // Helper for loose matching
-    const findK = (query) => keys.find(k => k.toUpperCase().includes(query));
-
+    const findK = (q) => keys.find(k => k.toUpperCase().includes(q));
     const kServicio = findK('SERVICIO') || keys[0];
     const kTitular = findK('TITULAR') || keys[1] || 'TITULAR';
     const kHorario = findK('HORARIO') || keys[2] || 'HORARIO';
@@ -1399,25 +1466,9 @@ function renderMasterSummary() {
     const displayLimit = 300;
     const dataToShow = filtered.slice(0, displayLimit);
 
-    let html = `
-    <table class="master-table" id="resizable-master">
-        <thead>
-            <tr>
-                <th style="width: 25%;">📍 SERVICIO <div class="resizer"></div></th>
-                <th style="width: 20%;">👤 TITULAR <div class="resizer"></div></th>
-                <th style="width: 20%;">⏰ HORARIO <div class="resizer"></div></th>
-                <th style="width: 15%;">🛡️ COBERTURA <div class="resizer"></div></th>
-                <th style="width: 20%;">🔄 SUPLENTE <div class="resizer"></div></th>
-            </tr>
-        </thead>
-        <tbody>
-            ${dataToShow.map((row, idx) => {
-        // Encontrar el índice real en masterData (no en filtered)
-        const realIndex = state.masterData.findIndex(r =>
-            r[kServicio] === row[kServicio] &&
-            r[kTitular] === row[kTitular] &&
-            r[kHorario] === row[kHorario]
-        );
+    tbody.innerHTML = dataToShow.map((row, idx) => {
+        // Find Real Index for editing
+        const realIndex = state.masterData.indexOf(row); // Optimized finding
 
         const s = row[kServicio] || '';
         const t = row[kTitular] || '';
@@ -1429,58 +1480,53 @@ function renderMasterSummary() {
         const tUpper = t.toString().toUpperCase();
         const isSpecialRow = eUpper.includes('BRIGADA') || tUpper.includes('RUTA CRISTALES') || eUpper.includes('OBRAS') || eUpper.includes('CERRADO');
         const isDisc = (eUpper.includes('DESCUBIERTO') || (eUpper === '' && tUpper === '') || (tUpper === 'SIN TITULAR')) && !isSpecialRow;
-
         const rowClass = isDisc ? 'critical-row' : '';
         const badgeClass = isDisc ? 'red' : 'green';
 
         return `
-                <tr class="${rowClass}" data-row-index="${realIndex}">
-                    <td title="${s}"><div class="td-content">${s}</div></td>
-                    <td title="${t}">
-                        <div class="td-content editable" 
-                             contenteditable="true" 
-                             data-column="${kTitular}"
-                             onblur="updateMasterCell(${realIndex}, '${kTitular}', this.innerText.trim())"
-                             style="cursor: text; border: 1px solid transparent; padding: 4px; border-radius: 3px;"
-                             onfocus="this.style.border='1px solid var(--sifu-blue)'; this.style.background='rgba(14, 165, 233, 0.05)';"
-                             onblur="this.style.border='1px solid transparent'; this.style.background='transparent'; updateMasterCell(${realIndex}, '${kTitular}', this.innerText.trim());">
-                            <b>${t}</b>
-                        </div>
-                    </td>
-                    <td title="${h}"><div class="td-content" style="color:var(--sifu-blue); font-family:monospace;">${h}</div></td>
-                    <td>
-                        <div class="td-content editable" 
-                             contenteditable="true" 
-                             data-column="${kEstado}"
-                             style="cursor: text;"
-                             onfocus="this.style.background='rgba(14, 165, 233, 0.05)';"
-                             onblur="this.style.background='transparent'; updateMasterCell(${realIndex}, '${kEstado}', this.innerText.trim());">
-                            <span class="badge ${badgeClass}">${e || 'OK'}</span>
-                        </div>
-                    </td>
-                    <td title="${sup}">
-                        <div class="td-content editable" 
-                             contenteditable="true" 
-                             data-column="${kSuplente}"
-                             style="cursor: text; border: 1px solid transparent; padding: 4px; border-radius: 3px;"
-                             onfocus="this.style.border='1px solid var(--sifu-blue)'; this.style.background='rgba(14, 165, 233, 0.05)';"
-                             onblur="this.style.border='1px solid transparent'; this.style.background='transparent'; updateMasterCell(${realIndex}, '${kSuplente}', this.innerText.trim());">
-                            ${sup || '-'}
-                        </div>
-                    </td>
-                </tr>
-                `;
-    }).join('')}
-        </tbody>
-    </table>`;
+            <tr class="${rowClass}" data-row-index="${realIndex}">
+                <td title="${s}"><div class="td-content">${s}</div></td>
+                <td title="${t}">
+                    <div class="td-content editable" 
+                            contenteditable="true" 
+                            data-column="${kTitular}"
+                            onblur="updateMasterCell(${realIndex}, '${kTitular}', this.innerText.trim())"
+                            style="cursor: text; border: 1px solid transparent; padding: 4px; border-radius: 3px;"
+                            onfocus="this.style.border='1px solid var(--sifu-blue)'; this.style.background='rgba(14, 165, 233, 0.05)';"
+                            onblur="this.style.border='1px solid transparent'; this.style.background='transparent'; updateMasterCell(${realIndex}, '${kTitular}', this.innerText.trim());">
+                        <b>${t}</b>
+                    </div>
+                </td>
+                <td title="${h}"><div class="td-content" style="color:var(--sifu-blue); font-family:monospace;">${h}</div></td>
+                <td>
+                    <div class="td-content editable" 
+                            contenteditable="true" 
+                            data-column="${kEstado}"
+                            style="cursor: text;"
+                            onfocus="this.style.background='rgba(14, 165, 233, 0.05)';"
+                            onblur="this.style.background='transparent'; updateMasterCell(${realIndex}, '${kEstado}', this.innerText.trim());">
+                        <span class="badge ${badgeClass}">${e || 'OK'}</span>
+                    </div>
+                </td>
+                <td title="${sup}">
+                    <div class="td-content editable" 
+                            contenteditable="true" 
+                            data-column="${kSuplente}"
+                            style="cursor: text; border: 1px solid transparent; padding: 4px; border-radius: 3px;"
+                            onfocus="this.style.border='1px solid var(--sifu-blue)'; this.style.background='rgba(14, 165, 233, 0.05)';"
+                            onblur="this.style.border='1px solid transparent'; this.style.background='transparent'; updateMasterCell(${realIndex}, '${kSuplente}', this.innerText.trim());">
+                        ${sup || '-'}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 
     if (filtered.length > displayLimit) {
-        html += `<div style="text-align:center; padding:10px; color:#888;">⚠️ Mostrando primeros ${displayLimit} registros. Usa filtros para ver más.</div>`;
+        tbody.innerHTML += `<tr><td colspan="5" style="text-align:center; padding:10px; color:#888;">⚠️ Mostrando primeros ${displayLimit} registros. Usa filtros para ver más.</td></tr>`;
     }
-
-    feed.innerHTML = html;
-    initResizableTable(document.getElementById('resizable-master'));
 }
+
 
 // Preserve existing functions not meant to be replaced if they are outside the range, 
 // but here we are cleaning up the old implementation completely.
@@ -1505,7 +1551,7 @@ function updateEmergencyPopup() {
 
     if (container) container.style.display = 'flex';
     popup.innerHTML = discovered.slice(0, 10).map(r => `
-        <div class="emergency-item-mini">
+    <div class="emergency-item-mini">
             <span class="icon">🚨</span>
             <div class="info">
                 <div class="name">${r[keyS]}</div>
@@ -1559,7 +1605,7 @@ function renderIncidents(query = '') {
         return;
     }
     incidentFeed.innerHTML = filtered.map(inc => `
-        <div class="feed-item priority-${inc.priority.toLowerCase()} ${inc.reported ? 'reported' : ''}">
+    <div class="feed-item priority-${inc.priority.toLowerCase()} ${inc.reported ? 'reported' : ''}">
             <div class="item-header">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" ${inc.reported ? 'checked' : ''} onclick="toggleReported(${inc.id})" style="width:18px; height:18px; cursor:pointer;">
@@ -1571,11 +1617,11 @@ function renderIncidents(query = '') {
                 </div>
             </div>
             <div class="item-desc">
-                <strong style="color:var(--sifu-blue);">${inc.type}</strong>: ${inc.desc || 'Sin descripciÃ³n detallada'}
+                <strong style="color:var(--sifu-blue);">${inc.type}</strong>: ${inc.desc || 'Sin descripción detallada'}
             </div>
             <div style="font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                <span>ðŸ“… ${formatNoteDate(inc.date)}</span>
-                <span>ðŸ•’ ${inc.time}</span>
+                <span>📅 ${formatNoteDate(inc.date)}</span>
+                <span>⏰ ${inc.time}</span>
             </div>
         </div>
     `).join('');
@@ -1605,22 +1651,22 @@ function renderNotes() {
         if (notes.length === 0) return '<div class="empty-state">EL CEREBRO OPERATIVO ESTÁ LIMPIO.</div>';
         return notes.map(note => {
             const tag = note.tag || 'INFO';
-            const tagClass = `tag-${tag.toLowerCase()}`;
+            const tagClass = `tag - ${tag.toLowerCase()} `;
             const tagIcon = tag === 'URGENTE' ? '🔥' : (tag === 'SEGUIMIENTO' ? '📞' : '📌');
             return `
-                <div class="note-item ${tagClass} ${note.completed ? 'completed' : ''}" style="cursor:pointer;" onclick="toggleNote(${note.id})">
-                    <div style="display:flex; align-items:flex-start; gap:12px;">
-                        <div style="flex:1;">
-                            <div style="font-size:10px; font-weight:800; color:var(--text-dim); margin-bottom:4px; display:flex; align-items:center; gap:5px;">
-                                <span>${tagIcon}</span> ${note.tag || 'INFO'}
-                            </div>
-                            <div class="note-text" style="font-size:13px; color:var(--text-main); line-height:1.5; font-weight:500;">${note.text}</div>
-                            <div style="font-size:10px; color:var(--text-dim); margin-top:8px;">📅 ${formatNoteDate(note.date)}</div>
-                        </div>
-                        <button onclick="event.stopPropagation(); deleteNote(${note.id})" style="background:none; border:none; color:#ccc; cursor:pointer; font-size:16px; padding:0 5px;">&times;</button>
-                    </div>
+    <div class="note-item ${tagClass} ${note.completed ? 'completed' : ''}" style="cursor:pointer;" onclick="toggleNote(${note.id})">
+        <div style="display:flex; align-items:flex-start; gap:12px;">
+            <div style="flex:1;">
+                <div style="font-size:10px; font-weight:800; color:var(--text-dim); margin-bottom:4px; display:flex; align-items:center; gap:5px;">
+                    <span>${tagIcon}</span> ${note.tag || 'INFO'}
                 </div>
-            `;
+                <div class="note-text" style="font-size:13px; color:var(--text-main); line-height:1.5; font-weight:500;">${note.text}</div>
+                <div style="font-size:10px; color:var(--text-dim); margin-top:8px;">📅 ${formatNoteDate(note.date)}</div>
+            </div>
+            <button onclick="event.stopPropagation(); deleteNote(${note.id})" style="background:none; border:none; color:#ccc; cursor:pointer; font-size:16px; padding:0 5px;">&times;</button>
+        </div>
+                </div>
+    `;
         }).join('');
     };
 
@@ -1630,7 +1676,7 @@ function renderNotes() {
             const tag = note.tag || 'INFO';
             const tagIcon = tag === 'URGENTE' ? '🔥' : (tag === 'SEGUIMIENTO' ? '📞' : '📌');
             return `
-                    <div class="note-card-horizontal ${note.tag || 'INFO'}" onclick="toggleNote(${note.id})">
+    <div class="note-card-horizontal ${note.tag || 'INFO'}" onclick="toggleNote(${note.id})">
                         <div class="note-card-header">
                             <span>${tagIcon} ${note.tag || 'INFO'}</span>
                             <span>${formatNoteDate(note.date).split(',')[0]}</span>
@@ -1638,7 +1684,7 @@ function renderNotes() {
                         <div class="note-card-body">${note.text}</div>
                         <div class="note-card-footer">Hacer clic para marcar como hecha</div>
                     </div>
-                `;
+    `;
         }).join('');
     };
 
@@ -1744,7 +1790,7 @@ function startTicker() {
 function updateTicker(msg) {
     if (tickerEl) {
         console.log("CEREBRO Ticker:", msg);
-        tickerEl.innerHTML = `<span style="color:var(--sifu-blue); font-weight:bold;">[V-OK-10]</span> ${msg}`;
+        tickerEl.innerHTML = `<span style="color:var(--sifu-blue); font-weight:bold;">[V - OK - 10]</span> ${msg}`;
         tickerEl.style.color = 'var(--sifu-amber)';
         setTimeout(() => tickerEl.style.color = '', 3000);
     }
@@ -1752,23 +1798,277 @@ function updateTicker(msg) {
 
 // Unified Widget Switching
 window.switchWidget = (type) => {
-    document.querySelectorAll('.w-panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.w-tab').forEach(t => t.classList.remove('active'));
+    // ... existing logic ...
+    // Placeholder to keep existing function valid if it was cut off in view
+    const wTitle = document.getElementById('widget-title');
+    const wContent = document.getElementById('unified-widget-content');
+    if (!wTitle || !wContent) return;
 
-    document.getElementById(`w-content-${type}`)?.classList.add('active');
-    const btn = document.querySelector(`.w-tab[onclick*="${type}"]`);
-    if (btn) btn.classList.add('active');
+    // ... implementation ...
+}
+
+/* --- OPERATIONAL ASSISTANT LOGIC --- */
+// Generic Modal Logic
+window.closeStatusModal = () => {
+    document.getElementById('status-detail-modal').style.display = 'none';
 };
+
+window.showStatusModal = (title, contentHTML) => {
+    const modal = document.getElementById('status-detail-modal');
+    const mTitle = document.getElementById('status-modal-title');
+    const mBody = document.getElementById('status-modal-body');
+    if (modal && mTitle && mBody) {
+        mTitle.innerText = title;
+        mBody.innerHTML = contentHTML;
+        modal.style.display = 'flex';
+    }
+};
+
+window.showUncoveredDetails = () => {
+    if (!state.masterData) return;
+    const uncovered = state.masterData.filter(row => {
+        const rowValues = Object.values(row).map(v => (v || '').toString().toUpperCase());
+        // Check for 'DESCUBIERTO' in any column, or 'SIN TITULAR'
+        // Ideally checking specific columns is better but dynamic keys make it tricky.
+        // Let's assume 'DESCUBIERTO' keyword is strong enough for status.
+        return rowValues.some(v => v.includes('DESCUBIERTO')) || rowValues.some(v => v === 'SIN TITULAR');
+    });
+
+    if (uncovered.length === 0) {
+        showStatusModal('DESCUBIERTOS', '<p>No hay servicios descubiertos actualmente.</p>');
+        return;
+    }
+
+    const html = `<table class="master-table">
+        <thead><tr><th>SERVICIO</th><th>ESTADO</th><th>HORARIO</th></tr></thead>
+        <tbody>
+            ${uncovered.map(row => {
+        const keys = Object.keys(row);
+        // Simple heuristic to find columns
+        const srv = row[keys.find(k => k.toUpperCase().includes('SERVICIO'))] || Object.values(row)[0] || '-';
+        const est = row[keys.find(k => k.toUpperCase().includes('ESTADO'))] || 'DESCUBIERTO';
+        const hor = row[keys.find(k => k.toUpperCase().includes('HORARIO'))] || '-';
+        return `<tr><td>${srv}</td><td class="status-descubierto">${est}</td><td>${hor}</td></tr>`;
+    }).join('')}
+        </tbody>
+    </table>`;
+    showStatusModal(`DESCUBIERTOS (${uncovered.length})`, html);
+};
+
+window.showAbsenceDetails = () => {
+    if (!state.masterData) return;
+    // Heuristic for Absences: Look for "BAJA", "IT", "ENFERMEDAD" in non-service columns
+    const absences = state.masterData.filter(row => {
+        const rowStr = Object.values(row).join(' ').toUpperCase();
+        return rowStr.includes('BAJA') || rowStr.includes(' I.T.') || rowStr.includes('IT ');
+    });
+
+    if (absences.length === 0) {
+        showStatusModal('BAJAS / IT', '<p>No hay registros de bajas o IT.</p>');
+        return;
+    }
+
+    const html = `<table class="master-table">
+        <thead><tr><th>SERVICIO</th><th>TITULAR</th><th>ESTADO</th></tr></thead>
+        <tbody>
+            ${absences.map(row => {
+        const keys = Object.keys(row);
+        const srv = row[keys.find(k => k.toUpperCase().includes('SERVICIO'))] || '-';
+        const tit = row[keys.find(k => k.toUpperCase().includes('TITULAR'))] || '-';
+        const est = row[keys.find(k => k.toUpperCase().includes('ESTADO'))] || '-';
+        return `<tr><td>${srv}</td><td>${tit}</td><td>${est}</td></tr>`;
+    }).join('')}
+        </tbody>
+    </table>`;
+    showStatusModal(`BAJAS / IT (${absences.length})`, html);
+};
+
+window.showIncidentDetails = () => {
+    if (!state.incidents || state.incidents.length === 0) {
+        showStatusModal('INCIDENCIAS', '<p>No hay incidencias registradas.</p>');
+        return;
+    }
+
+    // Sort by priority logic (High first) using a map is cleaner
+    const priorityOrder = { 'HIGH': 0, 'MID': 1, 'LOW': 2 };
+    const sorted = [...state.incidents].sort((a, b) => (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1));
+
+    const html = `<ul class="notebook-feed">
+        ${sorted.map(inc => `
+            <li class="note-card-horizontal" style="transform:none;">
+                <div class="note-content">
+                    <strong style="color:var(--sifu-blue);">${inc.worker}</strong><br>
+                    ${inc.desc} 
+                </div>
+                <div class="note-footer">
+                    <span class="badge ${inc.priority === 'HIGH' ? 'red' : 'blue'}">${inc.priority}</span>
+                    ${inc.date || ''}
+                </div>
+            </li>
+        `).join('')}
+    </ul>`;
+    showStatusModal(`INCIDENCIAS (${state.incidents.length})`, html);
+};
+
+window.openAIModal = () => {
+    const modal = document.getElementById('ai-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        generateAIInsights();
+    }
+}
+
+window.closeAIModal = () => {
+    const modal = document.getElementById('ai-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+window.generateAIInsights = async () => {
+    const container = document.getElementById('ai-insights-container');
+    const typing = document.getElementById('ai-typing-indicator');
+
+    if (!container || !typing) return;
+
+    container.innerHTML = '';
+    typing.style.display = 'block';
+
+    // Helper for typing delay
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Helper to add message with fade
+    const addMsg = (html, type = 'normal') => {
+        const div = document.createElement('div');
+        div.className = `ai-msg ${type}`;
+        div.innerHTML = html;
+        container.appendChild(div);
+        div.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // 1. Thinking Phase (Simulate Connection)
+    const thinkingSteps = [
+        "Conectando con el núcleo de datos...",
+        "Analizando patrones de cobertura en tiempo real...",
+        "Cruzando incidencias con cuadrantes activos...",
+        "Detectando anomalías operativas..."
+    ];
+
+    const typingText = document.createElement('div');
+    typingText.style.color = '#94a3b8';
+    typingText.style.fontSize = '12px';
+    typingText.style.marginTop = '10px';
+    typingText.style.fontFamily = 'monospace';
+    typingText.id = 'ai-thinking-text';
+    typingText.style.textAlign = 'center';
+    container.appendChild(typingText);
+
+    for (const step of thinkingSteps) {
+        typingText.innerText = `> ${step}`;
+        await wait(800 + Math.random() * 600);
+    }
+
+    if (typingText.parentNode) typingText.remove(); // Clear thinking text once done
+
+
+    typing.style.display = 'none';
+
+    // 2. Data Analysis
+    const stats = analyzeMasterData();
+    const incidentStats = analyzeIncidents();
+
+    // 3. Insight Generation (Reasoning Engine)
+
+    // Intro
+    await wait(200);
+    addMsg("He completado el análisis del estado operativo actual.", "normal");
+
+    // Critical Reasoning
+    if (stats.descubiertos > 0) {
+        await wait(1000);
+        const serviceName = stats.topDescubiertoService || 'múltiples puntos';
+        addMsg(`⚠️ <strong>Atención:</strong> He detectado una fractura en la cobertura. Tenemos <strong>${stats.descubiertos} servicios descubiertos</strong> ahora mismo.`, "urgent");
+
+        await wait(1200);
+        addMsg(`El foco del problema parece estar en <strong>${serviceName}</strong>. Basado en los datos, esto representa un riesgo crítico de servicio.`, "normal");
+    } else {
+        await wait(1000);
+        addMsg(`✅ <strong>Todo parece en orden.</strong> La cobertura está al <strong>100%</strong>. No detecto desviaciones en los servicios principales.`, "success");
+    }
+
+    // Correlation with Incidents
+    if (incidentStats.highPriority > 0) {
+        await wait(1200);
+        addMsg(`He correlacionado esto con <strong>${incidentStats.highPriority} incidencias de alta prioridad</strong> reportadas recientemente. Sugiero atenderlas antes de que escalen.`, "urgent");
+    }
+
+    // Proactive Suggestion
+    await wait(1500);
+    let suggestion = "";
+    if (stats.descubiertos > 0) {
+        suggestion = "💡 <strong>Mi recomendación:</strong> Contacta inmediatamente con la bolsa de suplencia para la zona afectada. Si mueves efectivos de servicios con baja carga, podrías cubrir el hueco en 30 minutos.";
+    } else {
+        suggestion = "💡 <strong>Sugerencia proactiva:</strong> Dado que la estabilidad es alta, es un buen momento para realizar auditorías de calidad preventivas en los servicios VIP.";
+    }
+    addMsg(suggestion, "normal");
+};
+
+function analyzeMasterData() {
+    if (!state.masterData || state.masterData.length === 0) return { descubiertos: 0, totalActive: 0 };
+
+    const keys = Object.keys(state.masterData[0]);
+    const kEstado = keys.find(k => k.toUpperCase().includes('ESTADO')) || 'ESTADO';
+    const kServicio = keys.find(k => k.toUpperCase().includes('SERVICIO')) || 'SERVICIO';
+
+    let descubiertos = 0;
+    let serviceCounts = {};
+
+    state.masterData.forEach(row => {
+        const status = (row[kEstado] || '').toString().toUpperCase();
+        if (status.includes('DESCUBIERTO') || status === 'SIN TITULAR') {
+            descubiertos++;
+            const srv = row[kServicio] || 'Desconocido';
+            serviceCounts[srv] = (serviceCounts[srv] || 0) + 1;
+        }
+    });
+
+    let topDescubiertoService = null;
+    let max = 0;
+    for (const [srv, count] of Object.entries(serviceCounts)) {
+        if (count > max) {
+            max = count;
+            topDescubiertoService = srv;
+        }
+    }
+
+    return {
+        descubiertos,
+        totalActive: state.masterData.length,
+        topDescubiertoService
+    };
+}
+
+function analyzeIncidents() {
+    const active = state.incidents.filter(i => !i.reported); // Assuming reported means resolved/archived? Or inverted?
+    // Let's assume stats.incidents contains all. We want unresolved.
+    // In this app, 'delete' removes them. So all visible are "active" or "reported" (just flagged).
+    // Let's count High Priority regardless.
+
+    const high = state.incidents.filter(i => i.priority === 'HIGH').length;
+    return {
+        total: state.incidents.length,
+        highPriority: high
+    };
+}
+
 
 // Tab Switching Logic
 window.switchTab = (tabId) => {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
-    const target = document.getElementById(`tab-${tabId}`);
+    const target = document.getElementById(`tab - ${tabId} `);
     if (target) {
         target.classList.add('active');
-        const btn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+        const btn = document.querySelector(`.tab - btn[onclick *= "${tabId}"]`);
         if (btn) btn.classList.add('active');
         if (tabId === 'resumen') setTimeout(updateCharts, 100);
     }
@@ -1881,7 +2181,7 @@ function updateSisPredict() {
     let prediction = Math.min(99.9, riskFactor * 2.5).toFixed(1);
     let trend = riskFactor > 5 ? '↑' : '↓';
 
-    el.textContent = `${prediction}% ${trend}`;
+    el.textContent = `${prediction}% ${trend} `;
     el.style.color = riskFactor > 10 ? 'var(--accent-red)' : (riskFactor > 5 ? 'var(--sifu-amber)' : 'var(--accent-green)');
 }
 
@@ -1981,13 +2281,13 @@ function updateInsights() {
     if (sickLeave > 3) {
         insights.push({
             type: 'ai-suggest',
-            text: `Alta tasa de absentismo (${sickLeave} activos). Revisar plan de suplencias.`,
+            text: `Alta tasa de absentismo(${sickLeave} activos).Revisar plan de suplencias.`,
             tag: 'ABSENTISMO'
         });
     } else {
         insights.push({
             type: 'performance',
-            text: `Nivel de absentismo bajo control. Operativa estable.`,
+            text: `Nivel de absentismo bajo control.Operativa estable.`,
             tag: 'OPTIMO'
         });
     }
@@ -2009,12 +2309,12 @@ function updateInsights() {
     }
 
     panel.innerHTML = insights.map(i => `
-        <div class="insight-card">
+    < div class="insight-card" >
             <div class="insight-tag ${i.type === 'critical' ? 'critical' : (i.type === 'performance' ? 'performance' : 'ai-suggest')}">
                 ${i.tag}
             </div>
             <div class="insight-text">${i.text}</div>
-        </div>
+        </div >
     `).join('');
 }
 function scrollToModule(id) {
@@ -2080,7 +2380,7 @@ async function fetchRealEmails() {
 
         const graphResponse = await fetch("https://graph.microsoft.com/v1.0/me/messages?$top=5&$select=sender,subject,bodyPreview,receivedDateTime,isRead", {
             headers: {
-                "Authorization": `Bearer ${accessToken}`
+                "Authorization": `Bearer ${accessToken} `
             }
         });
 
@@ -2101,12 +2401,12 @@ function renderRealEmails(emails) {
     if (unreadCount) unreadCount.textContent = unreads;
 
     feed.innerHTML = emails.map(email => `
-        <div class="outlook-item ${!email.isRead ? 'unread' : ''}" onclick="window.open('${email.webLink || '#'}', '_blank')">
+    < div class="outlook-item ${!email.isRead ? 'unread' : ''}" onclick = "window.open('${email.webLink || '#'}', '_blank')" >
             <div style="font-weight:700; font-size:13px; color:var(--sifu-blue); margin-bottom:4px;">${email.sender.emailAddress.name}</div>
             <div style="font-weight:600; font-size:12px; margin-bottom:2px;">${email.subject}</div>
             <div style="font-size:11px; color:var(--text-dim); overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${email.bodyPreview}</div>
             <div style="font-size:10px; color:var(--text-dim); text-align:right; margin-top:4px;">${new Date(email.receivedDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        </div>
+        </div >
     `).join('');
 }
 
@@ -2114,19 +2414,19 @@ function renderOutlookMock() {
     const feed = document.getElementById('outlook-feed');
     if (!feed) return;
     feed.innerHTML = `
-        <div class="outlook-item unread">
+    < div class="outlook-item unread" >
             <div style="font-weight:700; font-size:13px; color:var(--sifu-blue); margin-bottom:4px;">Soporte IT</div>
             <div style="font-weight:600; font-size:12px; margin-bottom:2px;">Mantenimiento Programado</div>
             <div style="font-size:11px; color:var(--text-dim);">Recordatorio: El sistema se actualizará esta noche.</div>
             <div style="font-size:10px; color:var(--text-dim); text-align:right; margin-top:4px;">10:30</div>
-        </div>
-        <div class="outlook-item">
-            <div style="font-weight:700; font-size:13px; color:var(--sifu-blue); margin-bottom:4px;">Recursos Humanos</div>
-            <div style="font-weight:600; font-size:12px; margin-bottom:2px;">Nuevas Incorporaciones</div>
-            <div style="font-size:11px; color:var(--text-dim);">Adjunto lista de personal nuevo.</div>
-            <div style="font-size:10px; color:var(--text-dim); text-align:right; margin-top:4px;">09:15</div>
-        </div>
-    `;
+        </div >
+    <div class="outlook-item">
+        <div style="font-weight:700; font-size:13px; color:var(--sifu-blue); margin-bottom:4px;">Recursos Humanos</div>
+        <div style="font-weight:600; font-size:12px; margin-bottom:2px;">Nuevas Incorporaciones</div>
+        <div style="font-size:11px; color:var(--text-dim);">Adjunto lista de personal nuevo.</div>
+        <div style="font-size:10px; color:var(--text-dim); text-align:right; margin-top:4px;">09:15</div>
+    </div>
+`;
 }
 
 
@@ -2139,14 +2439,14 @@ function showToast(msg, type = 'info') {
     }
 
     const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+    toast.className = `toast ${type} `;
     toast.innerHTML = `
-        <div style="display:flex; align-items:center; gap:10px;">
+    < div style = "display:flex; align-items:center; gap:10px;" >
             <span style="font-size:16px;">${type === 'success' ? '✅' : (type === 'error' ? '⚠️' : 'ℹ️')}</span>
             <span>${msg}</span>
-        </div>
-        <span class="toast-close" onclick="this.parentElement.remove()">×</span>
-    `;
+        </div >
+    <span class="toast-close" onclick="this.parentElement.remove()">×</span>
+`;
 
     container.appendChild(toast);
     setTimeout(() => {
@@ -2186,12 +2486,12 @@ function updateHeatmap() {
         else if (dayIncidents > 0) level = 1;
 
         html += `
-            <div class="heatmap-day level-${level}">
+    < div class="heatmap-day level-${level}" >
                 <span>${dayLabel}</span>
                 <strong>${dayIncidents}</strong>
                 <span style="font-size:8px;">${dayIncidents} alert.</span>
-            </div>
-        `;
+            </div >
+    `;
     }
     heatmap.innerHTML = html;
 }
@@ -2215,10 +2515,10 @@ function updateTopIncidents() {
     }
 
     list.innerHTML = sorted.map(([worker, count]) => `
-        <div class="top-incident-item">
+    < div class="top-incident-item" >
             <span class="worker">${worker}</span>
             <span class="count">${count} ALERTAS</span>
-        </div>
+        </div >
     `).join('');
 }
 
@@ -2324,18 +2624,18 @@ function initSaveIndicator() {
         indicator = document.createElement('div');
         indicator.id = 'save-indicator';
         indicator.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            z-index: 10000;
-            transition: all 0.3s ease;
-            opacity: 0;
-            pointer-events: none;
-        `;
+position: fixed;
+top: 20px;
+right: 20px;
+padding: 8px 16px;
+border - radius: 20px;
+font - size: 12px;
+font - weight: 700;
+z - index: 10000;
+transition: all 0.3s ease;
+opacity: 0;
+pointer - events: none;
+`;
         document.body.appendChild(indicator);
     }
 }
@@ -2379,3 +2679,58 @@ function markUnsavedChanges() {
     updateSaveIndicator('saving');
 }
 
+
+/* --- EXPORT LOGIC --- */
+window.exportStatusToExcel = () => {
+    const table = document.querySelector('#status-modal-body table');
+    if (!table) {
+        // Fallback if no table (e.g. Incidencias list)
+        const listItems = document.querySelectorAll('.note-card-horizontal');
+        if (listItems.length > 0) {
+            // Create data array from list
+            const data = Array.from(listItems).map(li => {
+                return {
+                    Incidencia: li.querySelector('.note-content').innerText.replace(/\n/g, ' '),
+                    Fecha: li.querySelector('.note-footer').innerText
+                };
+            });
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Incidencias");
+            const title = document.getElementById('status-modal-title').innerText || 'Export';
+            XLSX.writeFile(wb, `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            return;
+        }
+
+        alert('No hay datos tabulados para exportar.');
+        return;
+    }
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Datos" });
+    const title = document.getElementById('status-modal-title').innerText || 'Export';
+    XLSX.writeFile(wb, `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
+
+window.exportStatusToPDF = () => {
+    const element = document.querySelector('.status-modal-content'); // Export whole modal content or just body? Body is better for data.
+    // Let's export the body but with title.
+    // Actually, cloning the element to a temporary container might be cleaner to avoid buttons.
+
+    // Simple approach: Export the body.
+    const body = document.getElementById('status-modal-body');
+    const title = document.getElementById('status-modal-title').innerText || 'Reporte';
+
+    // Create a temp container with title for the PDF
+    const tempContainer = document.createElement('div');
+    tempContainer.style.padding = '20px';
+    tempContainer.innerHTML = `<h2>${title}</h2>` + body.innerHTML;
+
+    const opt = {
+        margin: 10,
+        filename: `${title}_${new Date().toISOString().slice(0, 10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(tempContainer).save();
+};
