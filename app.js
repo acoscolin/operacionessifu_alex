@@ -246,6 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
     startTicker();
     initVoiceCommand();
 
+    // Auto-fetch Excel from server (GitHub) if available
+    checkServerExcel();
+
     // AUTO-GUARDADO PERIÓDICO (cada 3 segundos)
     setInterval(() => {
         if (hasUnsavedChanges) {
@@ -2814,5 +2817,57 @@ function setupEventListeners() {
             document.body.dataset.theme = document.body.dataset.theme === 'light' ? 'dark' : 'light';
             localStorage.setItem('theme', document.body.dataset.theme);
         };
+    }
+}
+
+// --- AUTO-FETCH EXCEL FROM SERVER (GITHUB SYNC) ---
+async function checkServerExcel() {
+    // 1. Check Protocol
+    if (window.location.protocol === 'file:') {
+        console.warn("⚠️ Auto-Fetch desactivado en modo local (file://).");
+        showToast("⚠️ MODO LOCAL: Usa el botón 'SYNC MASTER' para actualizar.", "info");
+        return;
+    }
+
+    try {
+        console.log("☁️ Buscando actualización de Master en servidor...");
+        // Add cache busting to force fresh fetch
+        const response = await fetch('./MASTER GENERAL.xlsx?t=' + new Date().getTime());
+
+        if (!response.ok) {
+            console.log("⚠️ No se encontró MASTER GENERAL.xlsx en servidor o error de red.");
+            return;
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        if (arrayBuffer.byteLength === 0) {
+            console.log("⚠️ El archivo Excel está vacío.");
+            return;
+        }
+
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        // Convert to JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        if (jsonData.length > 0) {
+            console.log(`✅ EXCEL DESCARGADO DEL SERVIDOR: ${jsonData.length} filas.`);
+
+            // Process data using existing logic
+            processMasterArray(jsonData);
+
+            // Update UI feedback
+            updateTicker(`SISTEMA: DATOS SINCRONIZADOS DE SERVIDOR [${jsonData.length} SERVICIOS]`);
+            showToast(`☁️ Datos actualizados desde la nube (${jsonData.length} registros)`, "success");
+
+            // Re-render everything to show new data
+            renderAll();
+        }
+    } catch (e) {
+        console.error("❌ Error verificando Excel del servidor:", e);
+        showToast("❌ Error al conectar con servidor", "error");
     }
 }
