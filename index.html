@@ -11,6 +11,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="ai_styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -271,14 +272,16 @@
                                 style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin-top: 20px;">
                                 <div class="analytics-card">
                                     <h4>MAPA DE CALOR DE INCIDENCIAS (ÚLTIMOS 7 DÍAS)</h4>
-                                    <div id="incidents-heatmap" class="heatmap-grid">
-                                        <!-- Dynamic Heatmap -->
+                                    <div id="incidents-heatmap" class="heatmap-container"
+                                        style="height: 250px; position: relative;">
+                                        <canvas id="heatmapCanvas"></canvas>
                                     </div>
                                 </div>
                                 <div class="analytics-card">
                                     <h4>RECURRENTES / TOP ALERTAS</h4>
-                                    <div id="top-incidents-list" class="top-incidents-list">
-                                        <!-- Top Items -->
+                                    <div id="top-incidents-list" class="heatmap-container"
+                                        style="height: 250px; position: relative;">
+                                        <canvas id="topClientsChart"></canvas>
                                     </div>
                                 </div>
                             </div>
@@ -378,9 +381,21 @@
         </div>
     </div>
 
+    <!-- Floating AI Status Widget (New) -->
+    <div id="ai-float-widget" class="ai-float-widget" onclick="openAIModal()">
+        <div class="ai-float-icon">⚛️</div>
+        <div class="ai-float-text">
+            <span class="ai-label">SIS AI</span>
+            <span class="ai-status">ONLINE</span>
+        </div>
+        <div class="ai-float-glow"></div>
+    </div>
+
     <!-- Sistema de persistencia con IndexedDB (más confiable que localStorage) -->
     <script src="indexeddb-persist.js"></script>
     <script src="master_data.js"></script>
+    <script src="ai_service.js"></script>
+    <script src="analytics_engine.js"></script>
     <script src="app.js"></script>
     <!-- AI Manager Modal (Renamed) -->
     <div id="ai-modal" class="modal">
