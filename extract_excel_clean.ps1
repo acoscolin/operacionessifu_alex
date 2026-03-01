@@ -1,4 +1,4 @@
-# SIFU ULTRA-FAST EXTRACTOR v4.1
+# SIFU Excel Extractor - Version limpia sin emojis
 $ErrorActionPreference = "Stop"
 
 $baseDir = $PSScriptRoot
@@ -6,8 +6,9 @@ $excelPath = Join-Path $baseDir "MASTER GENERAL.xlsx"
 $jsPath = Join-Path $baseDir "master_data.js"
 $tempCsv = Join-Path $baseDir "temp_master.csv"
 
+Write-Host "Accediendo a Excel..." -NoNewline
+
 try {
-    Write-Host "Accediendo a Excel..." -NoNewline
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $false
     $excel.DisplayAlerts = $false
@@ -24,9 +25,9 @@ try {
     $excel.Quit()
     [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
 
-    Write-Host " Procesando datos..." -NoNewline
+    Write-Host " Procesando..." -NoNewline
 
-    # Deteccion automatica del delimitador (Espana usa ; normalmente)
+    # Deteccion del delimitador (Espana usa ; normalmente)
     $firstLine = Get-Content $tempCsv -TotalCount 1 -Encoding Default
     $delimiter = if ($firstLine -match ";") { ";" } else { "," }
 
@@ -40,7 +41,32 @@ try {
 
     if (Test-Path $tempCsv) { Remove-Item $tempCsv -Force }
 
-    Write-Host " OK ($($data.Count) filas)" -ForegroundColor Green
+    Write-Host " OK ($($data.Count) filas sincronizadas)" -ForegroundColor Green
+    Write-Host "Archivo generado: $jsPath" -ForegroundColor Cyan
+
+    # Mostrar cuantos descubiertos hay ahora
+    $props = $data[0].PSObject.Properties.Name
+    $kEstado = ($props | Where-Object { $_.ToUpper().Trim() -eq 'ESTADO' }   | Select-Object -First 1)
+    $kServicio = ($props | Where-Object { $_.ToUpper() -like '*SERVICIO*' }    | Select-Object -First 1)
+    if (-not $kEstado) { $kEstado = 'ESTADO' }
+    if (-not $kServicio) { $kServicio = 'SERVICIO' }
+
+    $seenSrv = @{}
+    $descCount = 0
+    foreach ($row in $data) {
+        $srv = if ($row.$kServicio) { $row.$kServicio.ToString().Trim() } else { '' }
+        $estado = if ($row.$kEstado) { $row.$kEstado.ToString().ToUpper().Trim() } else { '' }
+        if (-not $srv) { continue }
+        if ($estado -notmatch 'DESCUBIERTO|VACANTE|SIN ASIGNAR') { continue }
+        $srvKey = $srv.ToUpper()
+        if ($seenSrv.ContainsKey($srvKey)) { continue }
+        $seenSrv[$srvKey] = $true
+        $descCount++
+    }
+
+    Write-Host ""
+    Write-Host ">>> DESCUBIERTOS ACTUALES (unicos por servicio): $descCount" -ForegroundColor Yellow
+
 }
 catch {
     Write-Host " ERROR: $($_.Exception.Message)" -ForegroundColor Red
